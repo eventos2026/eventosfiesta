@@ -19,28 +19,28 @@
    Paleta cyberpunk: negro profundo + magenta/cian/violeta neón
 ========================================================= */
 :root{
-  --void:#08050f;
-  --void-2:#0b0718;
-  --panel:#140b28;
-  --panel-2:#1a1036;
-  --line:#3d2a6b;
-  --line-soft:rgba(157,110,255,.28);
-  --pink:#ff2ee0;
-  --cyan:#00f0ff;
-  --violet:#9d4dff;
-  --lime:#c6ff3a;
-  --amber:#ffb020;
-  --gold:#ffd54d;
-  --text:#f3eeff;
-  --text-dim:#a999d6;
-  --ok:#39ffb0;
-  --warn:#ffe14d;
-  --bad:#ff3d6e;
+  --void:#f5f1ed;
+  --void-2:#f0ebe6;
+  --panel:#faf7f3;
+  --panel-2:#f5f0eb;
+  --line:#e8dfd5;
+  --line-soft:rgba(198,174,154,.25);
+  --pink:#d4856a;
+  --cyan:#b89968;
+  --violet:#9d8b7d;
+  --lime:#c9a57c;
+  --amber:#d9a582;
+  --gold:#e6b89a;
+  --text:#5a4d45;
+  --text-dim:#8b7d72;
+  --ok:#8b9d6f;
+  --warn:#c9a582;
+  --bad:#a8735a;
   --radius:16px;
-  --shadow: 0 20px 60px -18px rgba(0,0,0,.75);
-  --glow-pink: 0 0 18px rgba(255,46,224,.55), 0 0 40px rgba(255,46,224,.2);
-  --glow-cyan: 0 0 18px rgba(0,240,255,.55), 0 0 40px rgba(0,240,255,.2);
-  --glow-violet: 0 0 20px rgba(157,77,255,.55), 0 0 46px rgba(157,77,255,.22);
+  --shadow: 0 20px 60px -18px rgba(139,125,114,.2);
+  --glow-pink: 0 0 18px rgba(212,133,106,.25), 0 0 40px rgba(212,133,106,.1);
+  --glow-cyan: 0 0 18px rgba(184,153,104,.25), 0 0 40px rgba(184,153,104,.1);
+  --glow-violet: 0 0 20px rgba(157,139,125,.25), 0 0 46px rgba(157,139,125,.1);
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html,body{margin:0; padding:0; min-height:100%;}
@@ -62,41 +62,48 @@ h1,h2,h3,.display{
 a{color:inherit;}
 button{font-family:inherit;}
 
-/* ---------- background atmosphere ---------- */
+/* ---------- background atmosphere: Pastel & Tierra para matrimonios ---------- */
 #bg-fx{
   position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;
   background:
-    radial-gradient(ellipse 60% 40% at 12% 8%, rgba(255,46,224,.30), transparent 60%),
-    radial-gradient(ellipse 55% 45% at 92% 12%, rgba(0,240,255,.22), transparent 60%),
-    radial-gradient(ellipse 60% 55% at 50% 105%, rgba(157,77,255,.32), transparent 60%),
-    linear-gradient(180deg, #060410, #0b0718 55%, #060410);
+    radial-gradient(ellipse 70% 50% at 15% 10%, rgba(212,133,106,.15), transparent 55%),
+    radial-gradient(ellipse 60% 45% at 88% 18%, rgba(184,153,104,.12), transparent 60%),
+    radial-gradient(ellipse 65% 60% at 50% 110%, rgba(169,170,140,.10), transparent 65%),
+    linear-gradient(135deg, #f5f1ed 0%, #faf7f3 40%, #f5ede4 100%);
+  animation: bgShift 25s ease-in-out infinite;
 }
-#vecCanvas{position:absolute; inset:0; width:100%; height:100%; opacity:.55; mix-blend-mode:screen;}
+@keyframes bgShift{
+  0%{ background-position: 0% 0%; }
+  50%{ background-position: 100% 100%; }
+  100%{ background-position: 0% 0%; }
+}
+#vecCanvas{position:absolute; inset:0; width:100%; height:100%; opacity:.25; mix-blend-mode:multiply;}
 #bg-fx .glow{
-  position:absolute; border-radius:50%; filter:blur(70px); opacity:.55;
-  animation: drift 18s ease-in-out infinite; will-change:transform;
+  position:absolute; border-radius:50%; filter:blur(80px); opacity:.35;
+  animation: float 22s ease-in-out infinite; will-change:transform;
 }
-@media(max-width:700px){#bg-fx .glow{filter:blur(46px);}}
-#bg-fx .g1{width:38vw; height:38vw; left:-8vw; top:-8vw; background:var(--pink); animation-delay:0s;}
-#bg-fx .g2{width:30vw; height:30vw; right:-6vw; top:8vw; background:var(--cyan); animation-delay:-6s;}
-#bg-fx .g3{width:42vw; height:42vw; left:30vw; bottom:-16vw; background:var(--violet); animation-delay:-12s;}
-@keyframes drift{
+@media(max-width:700px){#bg-fx .glow{filter:blur(50px); opacity:.28;}}
+#bg-fx .g1{width:45vw; height:45vw; left:-10vw; top:-12vw; background:#d4a89a; animation-delay:0s;}
+#bg-fx .g2{width:35vw; height:35vw; right:-8vw; top:5vw; background:#c9b89a; animation-delay:-8s;}
+#bg-fx .g3{width:50vw; height:50vw; left:28vw; bottom:-18vw; background:#d9c5b0; animation-delay:-14s;}
+@keyframes float{
   0%,100%{transform:translate(0,0) scale(1);}
-  33%{transform:translate(3vw,-2.5vw) scale(1.1);}
-  66%{transform:translate(-2vw,2vw) scale(.95);}
+  25%{transform:translate(2.5vw,-1.5vw) scale(1.05);}
+  50%{transform:translate(-2vw,1.5vw) scale(1.02);}
+  75%{transform:translate(1vw,-1vw) scale(1.03);}
 }
 #bg-fx .grid{
-  position:absolute; inset:0; opacity:.5;
+  position:absolute; inset:0; opacity:.08;
   background-image:
-    linear-gradient(rgba(157,110,255,.14) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(157,110,255,.14) 1px, transparent 1px);
-  background-size:42px 42px;
-  mask-image: radial-gradient(ellipse 85% 65% at 50% 20%, black 25%, transparent 78%);
-  animation: gridmove 14s linear infinite;
+    linear-gradient(rgba(157,139,125,.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(157,139,125,.08) 1px, transparent 1px);
+  background-size:48px 48px;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 25%, black 30%, transparent 80%);
+  animation: gridMoveSubtle 20s linear infinite;
 }
-@keyframes gridmove{
+@keyframes gridMoveSubtle{
   0%{background-position:0 0, 0 0;}
-  100%{background-position:42px 42px, 42px 42px;}
+  100%{background-position:48px 48px, 48px 48px;}
 }
 #bg-fx .circuit{
   position:absolute; inset:0; opacity:.12;
@@ -6564,9 +6571,9 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
     sanitizeMapLabels:function(containerId){const box=document.getElementById(containerId);if(!box)return;box.querySelectorAll('*').forEach(el=>{if(el.children.length===0&&el.textContent){const txt=el.textContent.trim();if(/VIP/i.test(txt)||/General/i.test(txt)){el.closest('.map-zone')?.remove();return}if(/Palco/i.test(txt))el.textContent=txt.replace(/Palco/gi,'Mesa')}})},
     saveMap:async function(){let url=this.event.mapa.mapa_url;const f=document.getElementById('mapFile')?.files?.[0];try{if(f)url=(await uploadMany([f],'mapa/'+this.event.id))[0];const mapa={...(this.event.mapa||{}),ubicacion:document.getElementById('mapPlace').value.trim(),mapa_url:url};await sb.from('eventos').update({mapa}).eq('id',this.event.id);this.event.mapa=mapa;toast('Mapa guardado');this.adminTab('map')}catch(e){toast('No se pudo guardar el mapa: '+e.message,true)}},
     // === CATERING: REGISTRO DE LO QUE PIDIÓ CADA INVITADO ===
-    renderAdminCatering:function(p){const cat=this.event?.mapa?.catering||{};const tickets=this.tickets||[];p.innerHTML=`<div class="ev-dashboard-head"><div><span class="eyebrow">Catering</span><h1>Pedidos por invitado</h1><p>Registra qué pidió cada invitado (entrada, plato fuerte, postre, bebida) y descarga el Excel para la mesa.</p></div><div class="ev-toolbar"><button class="ev-btn primary" onclick="EventApp.downloadCateringExcel()">📥 Descargar Excel</button></div></div><div class="ev-card ev-panel"><div class="ev-table-wrap" style="max-height:600px;overflow-y:auto"><table class="ev-table ev-table-sm"><thead style="position:sticky;top:0;background:var(--panel);z-index:10"><tr><th>Invitado</th><th>Entrada</th><th>Plato fuerte</th><th>Postre</th><th>Bebida</th></tr></thead><tbody>${tickets.map(t=>`<tr data-ticket="${esc(t.id)}"><td><strong>${esc(t.nombre_cliente||'')}</strong><br><span class="ev-code">${esc(t.cedula||t.codigo)}</span></td><td><select class="ev-select ev-catering-sel" data-ticket="${t.id}" data-cat="entrada">${this.cateringSelectOptions(cat.entrada)}</select></td><td><select class="ev-select ev-catering-sel" data-ticket="${t.id}" data-cat="fuerte">${this.cateringSelectOptions(cat.fuerte)}</select></td><td><select class="ev-select ev-catering-sel" data-ticket="${t.id}" data-cat="postre">${this.cateringSelectOptions(cat.postre)}</select></td><td><select class="ev-select ev-catering-sel" data-ticket="${t.id}" data-cat="bebidas">${this.cateringSelectOptions(cat.bebidas)}</select></td></tr>`).join('')||'<tr><td colspan="5"><em>Sin invitados registrados</em></td></tr>'}</tbody></table></div><p class="ev-note" style="margin-top:12px">💡 Los cambios se guardan automáticamente. Usa el botón <strong>Descargar Excel</strong> para exportar los pedidos.</p></div>`;document.querySelectorAll('.ev-catering-sel').forEach(sel=>sel.addEventListener('change',(e)=>EventApp.saveCateringSelection(e.target.dataset.ticket,e.target.dataset.cat,e.target.value)))},
-    cateringSelectOptions:function(items){const opts=[`<option value="">-- Seleccionar --</option>`];if(items&&Array.isArray(items)){items.forEach(item=>{opts.push(`<option value="${esc(item.nombre||'')}">${esc(item.nombre||'')}</option>`)})}return opts.join('')},
-    saveCateringSelection:async function(ticketId,categoria,value){try{if(!this.event)return;const tickets=this.event.catering_pedidos||{};if(!tickets[ticketId])tickets[ticketId]={entrada:'',fuerte:'',postre:'',bebidas:''};tickets[ticketId][categoria]=value;await sb.from('eventos').update({catering_pedidos:tickets}).eq('id',this.event.id);this.event.catering_pedidos=tickets;toast('Pedido guardado')}catch(e){console.error('Error guardando catering:',e)}},
+    renderAdminCatering:function(p){const cat=this.event?.mapa?.catering||{};const tickets=this.tickets||[];const pedidos=this.event?.catering_pedidos||{};if(!this.event||!cat.enabled){p.innerHTML=`<div class="ev-card ev-empty"><span class="eyebrow">⚠️ Catering</span><p>Primero configura el catering en la pestaña "Catering" de configuración del evento. Activa "Catering habilitado" y agrega opciones en cada categoría.</p></div>`;return}p.innerHTML=`<div class="ev-dashboard-head"><div><span class="eyebrow">Catering</span><h1>Pedidos por invitado</h1><p>Registra qué pidió cada invitado (entrada, plato fuerte, postre, bebida) y descarga el Excel para la mesa.</p></div><div class="ev-toolbar"><button class="ev-btn primary" onclick="EventApp.downloadCateringExcel()">📥 Descargar Excel</button><span style="font-size:12px;color:var(--text-dim);margin-left:12px">${Object.keys(pedidos).length} pedidos registrados</span></div></div><div class="ev-card ev-panel"><div class="ev-table-wrap" style="max-height:600px;overflow-y:auto"><table class="ev-table ev-table-sm"><thead style="position:sticky;top:0;background:var(--panel);z-index:10"><tr><th>Invitado</th><th>Entrada</th><th>Plato fuerte</th><th>Postre</th><th>Bebida</th></tr></thead><tbody>${tickets.map(t=>{const ped=pedidos[t.id]||{};return`<tr data-ticket="${esc(t.id)}"><td><strong>${esc(t.nombre_cliente||'')}</strong><br><span class="ev-code">${esc(t.cedula||t.codigo)}</span></td><td><select class="ev-select ev-catering-sel" data-ticket="${t.id}" data-cat="entrada"><option value="">-- Seleccionar --</option>${(cat.entrada||[]).map(x=>`<option value="${esc(x.nombre||'')}" ${(ped.entrada||'')===(x.nombre||'')?'selected':''} >${esc(x.nombre||'')}</option>`).join('')}</select></td><td><select class="ev-select ev-catering-sel" data-ticket="${t.id}" data-cat="fuerte"><option value="">-- Seleccionar --</option>${(cat.fuerte||[]).map(x=>`<option value="${esc(x.nombre||'')}" ${(ped.fuerte||'')===(x.nombre||'')?'selected':''} >${esc(x.nombre||'')}</option>`).join('')}</select></td><td><select class="ev-select ev-catering-sel" data-ticket="${t.id}" data-cat="postre"><option value="">-- Seleccionar --</option>${(cat.postre||[]).map(x=>`<option value="${esc(x.nombre||'')}" ${(ped.postre||'')===(x.nombre||'')?'selected':''} >${esc(x.nombre||'')}</option>`).join('')}</select></td><td><select class="ev-select ev-catering-sel" data-ticket="${t.id}" data-cat="bebidas"><option value="">-- Seleccionar --</option>${(cat.bebidas||[]).map(x=>`<option value="${esc(x.nombre||'')}" ${(ped.bebidas||'')===(x.nombre||'')?'selected':''} >${esc(x.nombre||'')}</option>`).join('')}</select></td></tr>`}).join('')||'<tr><td colspan="5"><em>Sin invitados registrados</em></td></tr>'}</tbody></table></div><p class="ev-note" style="margin-top:12px">💡 Los cambios se guardan automáticamente. Usa el botón <strong>Descargar Excel</strong> para exportar los pedidos.</p></div>`;document.querySelectorAll('.ev-catering-sel').forEach(sel=>sel.addEventListener('change',(e)=>{const btn=document.querySelector('.ev-btn.primary');if(btn)btn.disabled=true;EventApp.saveCateringSelection(e.target.dataset.ticket,e.target.dataset.cat,e.target.value).finally(()=>{if(btn)btn.disabled=false})}))},
+    cateringSelectOptions:function(items){if(!items||!Array.isArray(items))return'<option value="">-- Sin opciones configuradas --</option>';return items.map(item=>`<option value="${esc(item.nombre||'')}">${esc(item.nombre||'')}</option>`).join('')},
+    saveCateringSelection:async function(ticketId,categoria,value){try{if(!this.event)return;const tickets=this.event.catering_pedidos||{};if(!tickets[ticketId])tickets[ticketId]={entrada:'',fuerte:'',postre:'',bebidas:''};tickets[ticketId][categoria]=value;const updateData={catering_pedidos:tickets};const {error}=await sb.from('eventos').update(updateData).eq('id',this.event.id);if(error){console.error('Error Supabase:',error);toast('Error guardando: '+error.message,true);return}this.event.catering_pedidos=tickets;toast('✓ Pedido guardado')}catch(e){console.error('Error guardando catering:',e);toast('Error: '+e.message,true)}},
     downloadCateringExcel:async function(){try{if(typeof loadExcelJsLib==='function')await loadExcelJsLib();const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Pedidos');ws.columns=[{header:'Nombre',key:'nombre',width:25},{header:'Cédula',key:'cedula',width:15},{header:'Entrada',key:'entrada',width:20},{header:'Plato fuerte',key:'fuerte',width:20},{header:'Postre',key:'postre',width:15},{header:'Bebida',key:'bebidas',width:15}];const pedidos=this.event?.catering_pedidos||{};(this.tickets||[]).forEach(t=>{const ped=pedidos[t.id]||{};ws.addRow({nombre:t.nombre_cliente||'',cedula:t.cedula||'',entrada:ped.entrada||'',fuerte:ped.fuerte||'',postre:ped.postre||'',bebidas:ped.bebidas||''})});ws.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};ws.getRow(1).fill={type:'solid',fgColor:{argb:'FF2d3a5f'}};await wb.xlsx.writeBuffer().then(buf=>{const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`catering-pedidos-${this.event.nombre||'evento'}.xlsx`;a.click();URL.revokeObjectURL(url)})}catch(e){toast('Error descargando Excel: '+e.message,true)}},
     renderAdminScanners:async function(p){const {data,error}=await sb.from('vendedores').select('*').in('tipo',['qr','nfc']).eq('evento_id',this.event?.id||'').order('created_at',{ascending:false});if(error)return p.innerHTML=`<div class="ev-card ev-empty">${esc(error.message)}</div>`;p.innerHTML=`<div class="ev-dashboard-head"><div><span class="eyebrow">Personal</span><h1>Escáneres QR / NFC</h1><p>Crea usuarios para el control de acceso y servicios.</p></div></div><div class="ev-card ev-panel"><div class="ev-grid-2"><div><div class="ev-field"><label>Tipo</label><select class="ev-select" id="scType"><option value="qr">QR</option><option value="nfc">NFC</option></select></div><div class="ev-field"><label>Usuario</label><input class="ev-input" id="scUser"></div><div class="ev-field"><label>Contraseña</label><input class="ev-input" id="scPwd" type="password"></div><div class="ev-field"><label>Nombre / punto de control</label><input class="ev-input" id="scName"></div><button class="ev-btn primary" onclick="EventApp.createScannerUser()">Crear escáner</button></div><div class="ev-table-wrap"><table class="ev-table"><thead><tr><th>Tipo</th><th>Usuario</th><th>Punto</th><th></th></tr></thead><tbody>${(data||[]).map(x=>`<tr><td>${esc(x.tipo)}</td><td>${esc(x.usuario)}</td><td>${esc(x.nombre||'')}</td><td><button class="ev-btn sm danger" onclick="EventApp.deleteScanner('${esc(x.id)}')">Eliminar</button></td></tr>`).join('')||'<tr><td colspan="4">Sin escáneres</td></tr>'}</tbody></table></div></div></div>`},
     createScannerUser:async function(){const row={tipo:document.getElementById('scType').value,usuario:document.getElementById('scUser').value.trim(),password:document.getElementById('scPwd').value,nombre:document.getElementById('scName').value.trim(),limite:0,ilimitado:true,evento_id:this.event.id};if(!row.usuario||!row.password)return toast('Usuario y contraseña son obligatorios',true);try{const {error}=await sb.from('vendedores').insert(row);if(error)throw error;toast('Escáner creado');this.adminTab('scanners')}catch(e){toast('No se pudo crear: '+e.message,true)}},
