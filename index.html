@@ -1072,8 +1072,8 @@ const NetworkActivity = { begin(){}, end(){} };
 /* =========================================================
    CONFIG
 ========================================================= */
-const SUPA_URL = 'https://ukmmrbjmeumjkxdblmgc.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrbW1yYmptZXVtamt4ZGJsbWdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxODA4ODQsImV4cCI6MjEwMjc1Njg4NH0.mUue0VEvDTsW8dJSdumWnpzkO68vd9Fz9QMSCUJUaHQ';
+const SUPA_URL = 'https://xetflthjncbypzigtsay.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhldGZsdGhqbmNieXB6aWd0c2F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NTI0MjgsImV4cCI6MjEwNDIyODQyOH0.G1e01PJoqoKPxlzmgHvDwddy4PZBg15qoEc2lmmrsa8';
 const ADMIN_PASSWORD = null;
 const WHATSAPP_NUMBER = '573192153328';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -3652,13 +3652,18 @@ const AdminApp = {
   comprasAlert: {count:0, lastId:null, revisada:true},
   ticketsPorSolicitud: {},
   async login(){
-    const pass = document.getElementById('adminPass').value;
-    if(pass !== ADMIN_PASSWORD){ toast('Clave incorrecta', true); return; }
-    Auth.setRole('admin', {}, 'Admin');
-    Router.go('admin');
-    await this.loadEventos();
-    this.tab('a-eventos');
-    this.iniciarMonitorCompras();
+    const pass = document.getElementById('adminPass').value.trim();
+    if(!pass){ toast('Ingresa la clave', true); return; }
+    try{
+      const {data,error} = await sb.from('vendedores').select('*').eq('tipo','admin').eq('usuario','admin').eq('password',pass).limit(1);
+      if(error) throw error;
+      if(!data || !data.length){ toast('Clave incorrecta', true); return; }
+      Auth.setRole('admin', data[0], 'Admin');
+      Router.go('admin');
+      await this.loadEventos();
+      this.tab('a-eventos');
+      this.iniciarMonitorCompras();
+    }catch(e){ toast('Error validando administrador: '+e.message, true); }
   },
   // Acceso rápido desde el dashboard del admin a las demás interfaces
   // (control de acceso, vendedor, comprar tickets) sin tener que salir y
