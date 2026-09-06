@@ -6286,9 +6286,9 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
   const EventApp={role:null,identity:null,event:null,events:[],tickets:[],activeTab:'overview',_countTimer:null,
     init:async function(){const s=session();if(s?.role){this.role=s.role;this.identity=s.identity||null;this.event=s.eventId?await eventById(s.eventId):null;if(this.role==='admin'){await this.loadEvents();this.go('admin');return} if(this.role==='user'){await this.loadUserTickets();this.go('user');return} if(this.role==='scanner'){this.go('scanner');return}} await this.loadLanding();},
     loadLanding:async function(){this.role=null;this.identity=null;this.event=null;try{this.events=await events();this.event=this.events.find(x=>x.estado==='activo')||this.events[0]||null}catch(e){toast('No se pudieron cargar los eventos: '+e.message,true)}this.go('landing');},
-    go:function(view){this.view=view;this.renderHeader();if(view==='landing')this.renderLanding();else if(view==='admin')this.renderAdmin();else if(view==='user')this.renderUser();else if(view==='scanner')this.renderScanner();else if(view==='admin-login')this.renderAdminLogin();else if(view==='user-login')this.renderUserLogin();else if(view==='scanner-login')this.renderScannerLogin();},
+    go:function(view){if(this.view==='scanner'&&view!=='scanner')this.stopScanner();this.view=view;this.renderHeader();if(view==='landing')this.renderLanding();else if(view==='admin')this.renderAdmin();else if(view==='user')this.renderUser();else if(view==='scanner')this.renderScanner();else if(view==='admin-login')this.renderAdminLogin();else if(view==='user-login')this.renderUserLogin();else if(view==='scanner-login')this.renderScannerLogin();},
     renderHeader:function(){document.getElementById('headerEvent').textContent=this.event?.nombre||'';document.getElementById('headerBack').style.display=this.role?'inline-flex':'none';document.getElementById('brandName').textContent=this.event?.mapa?.marca||'Celebria'},
-    logout:function(){clearSession();clearInterval(this._countTimer);this.role=null;this.identity=null;this.event=null;this.go('landing')},
+    logout:function(){this.stopScanner();clearSession();clearInterval(this._countTimer);this.role=null;this.identity=null;this.event=null;this.go('landing')},
     loadEvents:async function(){try{this.events=await events();if(this.event)this.event=this.events.find(x=>x.id===this.event.id)||this.event;else this.event=this.events.find(x=>x.estado==='activo')||this.events[0]||null}catch(e){toast('No se pudieron cargar los eventos: '+e.message,true)}},
     renderLanding:function(){const root=document.getElementById('evMain'); const list=this.events||[]; const evt=this.event||list[0]||null; if(!evt){root.innerHTML=`<section class="ev-main"><div class="ev-card ev-login-card"><span class="eyebrow">Celebria</span><h1>Tu evento, organizado con calma.</h1><p>La página pública aún no tiene un evento configurado. El administrador podrá crear el evento, fecha, galerías, mapa, catering y tickets desde su dashboard.</p><div class="ev-actions"><button class="ev-btn primary" onclick="EventApp.go('admin-login')">Entrar como administrador</button></div></div></section>`;return}
       this.event=normalizeEvent(evt);const g=this.event.mapa.galerias;root.innerHTML=`<section class="ev-main">
@@ -6354,10 +6354,63 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
     renderQrInto:function(id,data,size){size=size||177;const el=document.getElementById(id);if(!el)return;el.innerHTML='';if(window.QRCode){new QRCode(el,{text:data,width:size,height:size,correctLevel:QRCode.CorrectLevel.L})}else if(typeof loadQRCodeLib==='function'){loadQRCodeLib().then(()=>{if(document.getElementById(id))new QRCode(document.getElementById(id),{text:data,width:size,height:size,correctLevel:QRCode.CorrectLevel.L})})}},
     renderScannerLogin:function(){sb.from('vendedores').select('*').in('tipo',['qr','nfc']).order('created_at',{ascending:false}).then(({data})=>{document.getElementById('evMain').innerHTML=`<section class="ev-main"><div class="ev-login-wrap"><div class="ev-card ev-login-card"><span class="eyebrow">Control de acceso</span><h1>Escáneres QR / NFC</h1><div class="ev-field"><label>Usuario</label><select class="ev-select" id="scanUser">${(data||[]).map(x=>`<option value="${esc(x.usuario)}">${esc(x.usuario)} · ${esc(x.nombre||x.tipo)}</option>`).join('')||'<option value="">No hay escáneres registrados</option>'}</select></div><div class="ev-field"><label>Contraseña</label><input class="ev-input" id="scanPwd" type="password" placeholder="••••••••"></div><button class="ev-btn primary" style="width:100%" onclick="EventApp.loginScanner()">Entrar al control</button><div class="ev-divider"></div><button class="ev-btn" onclick="EventApp.go('landing')">Volver</button></div></div></section>`})},
     loginScanner:async function(){const u=document.getElementById('scanUser').value,p=document.getElementById('scanPwd').value;if(!u||!p)return toast('Completa el acceso',true);const {data,error}=await sb.from('vendedores').select('*').in('tipo',['qr','nfc']).eq('usuario',u).eq('password',p).limit(1);if(error)return toast(error.message,true);if(!data?.length)return toast('Credenciales inválidas',true);this.role='scanner';this.identity=data[0];setSession({role:'scanner',identity:{id:data[0].id,usuario:data[0].usuario,nombre:data[0].nombre,tipo:data[0].tipo}});await this.loadEvents();this.event=this.events.find(x=>x.id===data[0].evento_id)||this.events.find(x=>x.estado==='activo')||this.events[0]||null;this.go('scanner')},
-    renderScanner:function(){const root=document.getElementById('evMain');if(!this.event){root.innerHTML='<section class="ev-main"><div class="ev-card ev-empty">No hay eventos configurados.</div></section>';return}root.innerHTML=`<section class="ev-main"><div class="ev-scanner"><div class="ev-card ev-panel"><span class="eyebrow">${esc(this.event.nombre)}</span><h1 style="font:600 34px Georgia,serif;margin:7px 0">Control de acceso</h1><p class="muted">Escáner ${esc(this.identity?.usuario||'')} · admite QR y NFC cuando el dispositivo/navegador lo soporte.</p><div class="ev-scan-stage"><div id="scannerReader" style="width:100%;height:100%"></div></div><div class="ev-actions" style="justify-content:center"><button class="ev-btn primary" onclick="EventApp.startScanner()">Iniciar cámara QR</button><button class="ev-btn green" onclick="EventApp.startNfc()">Leer NFC</button><button class="ev-btn" onclick="EventApp.go('landing')">Salir</button></div><div id="scanAlertWrap" class="ev-scan-alert-wrap"></div><div id="scanStatus" class="ev-note" style="margin-top:12px">Listo para validar ingreso, catering o transporte.</div></div></div></section>`},
-    startScanner:async function(){try{if(typeof loadHtml5QrcodeLib==='function')await loadHtml5QrcodeLib(); if(this.scanner){return} this.scanner=new Html5Qrcode('scannerReader'); await this.scanner.start({facingMode:'environment'},{fps:10,qrbox:240},txt=>this.handleScan(txt),()=>{});toast('Cámara activa')}catch(e){toast('No se pudo iniciar la cámara: '+e.message,true)}},
+    renderScanner:function(){const root=document.getElementById('evMain');if(!this.event){root.innerHTML='<section class="ev-main"><div class="ev-card ev-empty">No hay eventos configurados.</div></section>';return}root.innerHTML=`<section class="ev-main"><div class="ev-scanner"><div class="ev-card ev-panel"><span class="eyebrow">${esc(this.event.nombre)}</span><h1 style="font:600 34px Georgia,serif;margin:7px 0">Control de acceso</h1><p class="muted">Escáner ${esc(this.identity?.usuario||'')} · admite QR y NFC cuando el dispositivo/navegador lo soporte.</p><div class="ev-scan-stage"><div id="scannerReader" style="width:100%;height:100%"></div></div><div class="ev-actions" style="justify-content:center"><button class="ev-btn primary" onclick="EventApp.startScanner()">Iniciar cámara QR</button><button class="ev-btn" onclick="EventApp.stopScanner()">Detener cámara</button><button class="ev-btn green" onclick="EventApp.startNfc()">Leer NFC</button><button class="ev-btn" onclick="EventApp.go('landing')">Salir</button></div><div id="scanAlertWrap" class="ev-scan-alert-wrap"></div><div id="scanStatus" class="ev-note" style="margin-top:12px">Listo para validar ingreso, catering o transporte.</div></div></div></section>`},
+    // Inicia la cámara del lector QR. Antes, si el primer intento de acceso a
+    // la cámara fallaba (permiso denegado, cámara ocupada, etc.), la instancia
+    // de Html5Qrcode quedaba "colgada" en memoria y los siguientes clics en
+    // "Iniciar cámara QR" no hacían nada (el código salía por el `if(this.scanner)`
+    // sin volver a intentarlo) — eso hacía parecer que el lector "no leía" los QR.
+    // Ahora: se limpia la instancia si algo falla, se prueban varias formas de
+    // pedir la cámara trasera (algunos navegadores/dispositivos no soportan
+    // `facingMode:'environment'` directo) y se activa el decodificador nativo
+    // del navegador cuando está disponible, que suele detectar el QR más rápido
+    // y de forma más confiable que el decodificador por software.
+    startScanner:async function(){
+      if(this.scanner){toast('La cámara ya está activa');return}
+      try{
+        if(typeof loadHtml5QrcodeLib==='function')await loadHtml5QrcodeLib();
+        const scanner=new Html5Qrcode('scannerReader',{verbose:false});
+        this.scanner=scanner;
+        const cfg={fps:10,qrbox:240,aspectRatio:1,disableFlip:false,experimentalFeatures:{useBarCodeDetectorIfSupported:true}};
+        const onScan=txt=>this.handleScan(txt);
+        const onErr=()=>{};
+        try{
+          await scanner.start({facingMode:{exact:'environment'}},cfg,onScan,onErr);
+        }catch(e1){
+          try{
+            await scanner.start({facingMode:'environment'},cfg,onScan,onErr);
+          }catch(e2){
+            const cams=await (window.Html5Qrcode&&Html5Qrcode.getCameras?Html5Qrcode.getCameras():Promise.resolve([])).catch(()=>[]);
+            if(!cams.length)throw e2;
+            await scanner.start(cams[cams.length-1].id,cfg,onScan,onErr);
+          }
+        }
+        toast('Cámara activa: apunta al código QR');
+      }catch(e){
+        if(this.scanner){try{await this.scanner.clear()}catch(_){} this.scanner=null}
+        toast('No se pudo iniciar la cámara: '+(e?.message||e)+'. Revisa los permisos de cámara del navegador.',true);
+      }
+    },
+    // Detiene y libera la cámara por completo (necesario antes de poder
+    // reiniciarla limpiamente, ya sea con el botón "Detener cámara" o al
+    // salir de esta pantalla).
+    stopScanner:async function(){
+      if(!this.scanner)return;
+      const s=this.scanner; this.scanner=null;
+      try{await s.stop()}catch(e){}
+      try{await s.clear()}catch(e){}
+    },
     startNfc:async function(){if(!('NDEFReader'in window))return toast('NFC no disponible en este navegador/dispositivo',true);try{const r=new NDEFReader();await r.scan();r.onreading=ev=>{const rec=ev.message.records[0];this.handleScan(new TextDecoder().decode(rec.data));};toast('NFC activo: acerca la etiqueta')}catch(e){toast('No se pudo iniciar NFC: '+e.message,true)}},
-    handleScan:async function(raw){try{const payload=JSON.parse(raw);const code=payload.t||payload.ticket;const service=payload.s||payload.servicio||'ingreso';const {data,error}=await sb.from('tickets').select('*').eq('codigo',code).limit(1);if(error)throw error;const t=data?.[0];
+    handleScan:async function(raw){
+      // Sin este freno, mientras el QR sigue frente a la cámara Html5Qrcode
+      // vuelve a decodificar el mismo texto en cada fotograma (varias veces
+      // por segundo), lo que dispara la alerta una y otra vez y puede dar la
+      // sensación de que el lector "no lee bien". Se ignora el mismo código
+      // repetido durante 2.5s después de procesarlo.
+      const now=Date.now();
+      if(this._lastScan&&this._lastScan.code===raw&&(now-this._lastScan.at)<2500)return;
+      this._lastScan={code:raw,at:now};
+      try{const payload=JSON.parse(raw);const code=payload.t||payload.ticket;const service=payload.s||payload.servicio||'ingreso';const {data,error}=await sb.from('tickets').select('*').eq('codigo',code).limit(1);if(error)throw error;const t=data?.[0];
       if(!t)return this.scanResult('Ticket inválido','bad','Este código no existe en la base de datos.');
       if(this.event&&t.evento_id!==this.event.id)return this.scanResult('Ticket inválido','bad','Pertenece a otro evento.');
       if(t.estado==='anulado')return this.scanResult('Ticket inválido','bad','Este ticket fue anulado por el organizador.');
