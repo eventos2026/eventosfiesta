@@ -6416,6 +6416,17 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
       if(t.estado==='anulado')return this.scanResult('Ticket inválido','bad','Este ticket fue anulado por el organizador.');
       if(!this.servicioHabilitado(t,service))return this.scanResult('Ticket inválido','bad','El servicio solicitado no está habilitado para este ticket.');
       if(service==='ingreso'&&t.escaneado)return this.scanResult('Ya fue leído','warn',`Escaneado ${t.escaneado_hora?'el '+new Date(t.escaneado_hora).toLocaleString('es-CO'):'antes'}${t.escaneado_por?' por '+t.escaneado_por:''}.`);
+      // Los servicios que no son "ingreso" (catering, transporte, etc.) no tienen
+      // su propio flag en la tabla tickets, así que sin esta verificación el QR
+      // de catering siempre salía "válido" aunque ya se hubiera usado antes. El
+      // historial de lecturas_qr es la fuente de verdad: si ya existe una lectura
+      // "valida" para este mismo ticket y este mismo servicio, se marca como
+      // "ya fue leído" en vez de volver a autorizarlo.
+      if(service!=='ingreso'){
+        const {data:previas}=await sb.from('lecturas_qr').select('lector,created_at').eq('ticket_id',t.id).eq('motivo',service).eq('resultado','valida').order('created_at',{ascending:false}).limit(1);
+        const prev=previas&&previas[0];
+        if(prev)return this.scanResult('Ya fue leído','warn',`Servicio "${service}" ya fue registrado ${prev.created_at?'el '+new Date(prev.created_at).toLocaleString('es-CO'):'antes'}${prev.lector?' por '+prev.lector:''}.`);
+      }
       await sb.from('lecturas_qr').insert({evento_id:t.evento_id,ticket_id:t.id,codigo:code,lector:this.identity?.usuario||'',resultado:'valida',motivo:service});
       if(service==='ingreso')await sb.from('tickets').update({escaneado:true,escaneado_por:this.identity?.usuario||'',escaneado_hora:new Date().toISOString()}).eq('id',t.id);
       this.scanResult('Ticket válido','ok',(service==='ingreso'?'Ingreso autorizado para ':'Servicio "'+service+'" autorizado para ')+(t.nombre_cliente||'el invitado')+'.');
@@ -6487,7 +6498,64 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
     newTicket:function(){const box=document.createElement('div');box.className='ev-modal';box.innerHTML=`<div class="ev-modal-card"><h2 style="font:600 27px Georgia,serif;margin:0 0 15px">Generar ticket</h2><div class="ev-grid-2"><div><div class="ev-field"><label>Nombre completo</label><input class="ev-input" id="ntName"></div><div class="ev-field"><label>Correo</label><input class="ev-input" id="ntEmail" type="email"></div><div class="ev-field"><label>Cédula</label><input class="ev-input" id="ntId"></div></div><div><div class="ev-field"><label>Mesa / ubicación</label><input class="ev-input" id="ntTable" placeholder="Mesa 12"></div><div class="ev-field"><label>Teléfono</label><input class="ev-input" id="ntPhone"></div><div class="ev-field"><label>Tipo de ubicación</label><input class="ev-input" id="ntType" value="mesa"></div></div></div><div class="ev-actions"><button class="ev-btn" onclick="this.closest('.ev-modal').remove()">Cancelar</button><button class="ev-btn primary" onclick="EventApp.createTicket(this)">Crear ticket</button></div></div>`;document.body.appendChild(box)},
     createTicket:async function(btn){const modal=btn.closest('.ev-modal');const obj={evento_id:this.event.id,codigo:gen('TK'),codigo_validacion:gen('VAL'),nombre_cliente:document.getElementById('ntName').value.trim(),correo:document.getElementById('ntEmail').value.trim(),cedula:document.getElementById('ntId').value.trim(),telefono:document.getElementById('ntPhone').value.trim(),ubicacion_tipo:document.getElementById('ntType').value.trim()||'mesa',ubicacion_detalle:document.getElementById('ntTable').value.trim(),precio:0,tipo_pago:'cortesia',vt_usuario:'Admin',estado:'vendido'};if(!obj.nombre_cliente||(!obj.correo&&!obj.cedula))return toast('Nombre y correo/cédula son obligatorios',true);try{const {data,error}=await sb.from('tickets').insert(obj).select();if(error)throw error;modal.remove();toast('Ticket generado');await this.renderAdminTickets(document.getElementById('adminPane'))}catch(e){toast('No se pudo generar el ticket: '+e.message,true)}},
     viewTicket:async function(id){const t=this.tickets.find(x=>x.id===id);if(!t)return;const wrap=document.createElement('div');wrap.className='ev-modal';wrap.innerHTML=`<div class="ev-modal-card"><h2 style="font:600 26px Georgia,serif;margin:0 0 12px">${esc(t.nombre_cliente||'Ticket')}</h2><div id="modalQR" style="display:grid;place-items:center;margin:10px auto 14px"></div><p class="ev-code">${esc(t.codigo)} · ${esc(t.codigo_validacion)}</p><div class="ev-service-row"><span class="svc">Ingreso</span><span class="svc">Catering</span><span class="svc">Transporte</span></div><div class="ev-actions"><button class="ev-btn primary" onclick="EventApp.generateServiceQr('${esc(t.id)}','ingreso')">QR ingreso</button><button class="ev-btn" onclick="EventApp.generateServiceQr('${esc(t.id)}','catering')">QR catering</button><button class="ev-btn" onclick="EventApp.generateServiceQr('${esc(t.id)}','transporte')">QR transporte</button><button class="ev-btn" onclick="this.closest('.ev-modal').remove()">Cerrar</button></div></div>`;document.body.appendChild(wrap);this.renderQrInto('modalQR',qrData(t,'ingreso'))},
-    renderAdminCatering:function(p){if(!this.event)return p.innerHTML='<div class="ev-card ev-empty">Selecciona un evento.</div>';const c=this.event.mapa.catering||{};p.innerHTML=`<div class="ev-dashboard-head"><div><span class="eyebrow">Experiencia del invitado</span><h1>Catering</h1><p>Habilita el menú y administra opciones por categoría. También puedes cargar muchas opciones con Excel.</p></div><div class="ev-toolbar"><button class="ev-btn" onclick="document.getElementById('catExcel').click()">Importar Excel</button><input id="catExcel" type="file" accept=".xlsx,.xls" style="display:none" onchange="EventApp.importCateringExcel(event)"></div></div><div class="ev-card ev-panel"><label style="display:flex;align-items:center;gap:9px;font-size:13px"><input type="checkbox" id="catEnabled" ${c.enabled?'checked':''}> Habilitar Catering Menu para invitados</label><div class="ev-divider"></div><div class="ev-menu-grid">${this.adminMenuCat('entrada','Entrada',c.entrada)}${this.adminMenuCat('fuerte','Plato fuerte',c.fuerte)}${this.adminMenuCat('postre','Postre',c.postre)}${this.adminMenuCat('bebidas','Bebidas',c.bebidas)}</div><div class="ev-actions" style="margin-top:16px"><button class="ev-btn primary" onclick="EventApp.saveCatering()">Guardar menú</button></div><div class="ev-note" style="margin-top:14px">Formato Excel sugerido: columnas <strong>categoria</strong>, <strong>nombre</strong>, <strong>cantidadDefault</strong>. Categorías permitidas: entrada, fuerte, postre, bebidas.</div></div>`},
+    renderAdminCatering:function(p){if(!this.event)return p.innerHTML='<div class="ev-card ev-empty">Selecciona un evento.</div>';const c=this.event.mapa.catering||{};p.innerHTML=`<div class="ev-dashboard-head"><div><span class="eyebrow">Experiencia del invitado</span><h1>Catering</h1><p>Habilita el menú y administra opciones por categoría. También puedes cargar muchas opciones con Excel.</p></div><div class="ev-toolbar"><button class="ev-btn" onclick="document.getElementById('catExcel').click()">Importar Excel</button><input id="catExcel" type="file" accept=".xlsx,.xls" style="display:none" onchange="EventApp.importCateringExcel(event)"></div></div><div class="ev-card ev-panel"><label style="display:flex;align-items:center;gap:9px;font-size:13px"><input type="checkbox" id="catEnabled" ${c.enabled?'checked':''}> Habilitar Catering Menu para invitados</label><div class="ev-divider"></div><div class="ev-menu-grid">${this.adminMenuCat('entrada','Entrada',c.entrada)}${this.adminMenuCat('fuerte','Plato fuerte',c.fuerte)}${this.adminMenuCat('postre','Postre',c.postre)}${this.adminMenuCat('bebidas','Bebidas',c.bebidas)}</div><div class="ev-actions" style="margin-top:16px"><button class="ev-btn primary" onclick="EventApp.saveCatering()">Guardar menú</button></div><div class="ev-note" style="margin-top:14px">Formato Excel sugerido: columnas <strong>categoria</strong>, <strong>nombre</strong>, <strong>cantidadDefault</strong>. Categorías permitidas: entrada, fuerte, postre, bebidas.</div></div><div class="ev-card ev-panel"><h3>Listado de ingresos a catering / buffet</h3><p class="muted">Descarga en Excel cada validación hecha en el punto de catering, ordenada por mesa y por el usuario del escáner (personal de catering/buffet) que la registró.</p><div class="ev-actions" style="margin-top:10px"><button class="ev-btn" onclick="EventApp.exportarListadoServicio('catering')">⬇️ Descargar listado de catering (mesa / usuario)</button></div></div>`},
+    // Genera un Excel con cada lectura válida de un servicio (por ejemplo
+    // "catering"): mesa del ticket, invitado, código, quién lo atendió (el
+    // usuario de escáner que hizo el check-in) y la fecha/hora. Se ordena
+    // primero por mesa y luego por usuario, tal como lo pide el admin para
+    // cuadrar el listado con el personal de catering/buffet.
+    exportarListadoServicio:async function(service){
+      if(!this.event)return toast('Selecciona un evento',true);
+      NetworkActivity.begin();
+      try{
+        const {data,error}=await sb.from('lecturas_qr').select('*').eq('evento_id',this.event.id).eq('motivo',service).eq('resultado','valida').order('created_at',{ascending:true});
+        if(error)throw error;
+        const lecturas=data||[];
+        if(!lecturas.length){toast('Todavía no hay lecturas válidas registradas para "'+service+'"',true);return}
+        const ticketsById={};
+        (this.tickets||[]).forEach(t=>ticketsById[t.id]=t);
+        const faltantes=[...new Set(lecturas.map(l=>l.ticket_id).filter(id=>id&&!ticketsById[id]))];
+        if(faltantes.length){
+          const {data:extra}=await sb.from('tickets').select('*').in('id',faltantes);
+          (extra||[]).forEach(t=>ticketsById[t.id]=t);
+        }
+        const filas=lecturas.map(l=>{
+          const t=ticketsById[l.ticket_id]||{};
+          return {
+            mesa: t.ubicacion_detalle||t.ubicacion_tipo||'Sin mesa',
+            invitado: t.nombre_cliente||'',
+            codigo: t.codigo||l.codigo||'',
+            usuario_catering: l.lector||'',
+            fecha_hora: l.created_at?new Date(l.created_at).toLocaleString('es-CO'):''
+          };
+        });
+        filas.sort((a,b)=>a.mesa.localeCompare(b.mesa,'es',{numeric:true})||a.usuario_catering.localeCompare(b.usuario_catering,'es')||a.invitado.localeCompare(b.invitado,'es'));
+        await loadExcelJsLib();
+        const workbook=new ExcelJS.Workbook();
+        const sheet=workbook.addWorksheet(service==='catering'?'Catering':service);
+        sheet.columns=[
+          {header:'Mesa', key:'mesa', width:16},
+          {header:'Invitado', key:'invitado', width:26},
+          {header:'Código ticket', key:'codigo', width:18},
+          {header:'Usuario de catering/buffet', key:'usuario_catering', width:24},
+          {header:'Fecha y hora', key:'fecha_hora', width:20}
+        ];
+        sheet.getRow(1).font={bold:true};
+        filas.forEach(f=>sheet.addRow(f));
+        const buffer=await workbook.xlsx.writeBuffer();
+        const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        a.href=url; a.download=(service==='catering'?'catering_':service+'_')+(this.event.nombre||'evento').replace(/[^a-zA-Z0-9]+/g,'_')+'.xlsx';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),4000);
+        toast('Listado generado con '+filas.length+' registro(s)');
+      }catch(e){
+        toast('No se pudo generar el listado: '+(e.message||e),true);
+      } finally {
+        NetworkActivity.end();
+      }
+    },
     adminMenuCat:function(key,label,items){return `<div class="ev-card ev-menu-cat"><h4>${esc(label)}</h4><div id="menu_${key}" class="ev-menu-items">${(items||[]).map((x,i)=>`<div class="ev-menu-item"><input class="ev-input" data-menu="${key}" data-name value="${esc(x.nombre||x)}"><input class="ev-input" type="number" min="0" data-menu="${key}" data-qty value="${Number(x.cantidadDefault||1)}"><button class="ev-btn sm danger" onclick="this.parentElement.remove()">×</button></div>`).join('')}</div><button class="ev-btn sm" style="margin-top:10px" onclick="EventApp.addMenuItem('${key}')">+ opción</button></div>`},
     addMenuItem:function(k){const box=document.getElementById('menu_'+k);const div=document.createElement('div');div.className='ev-menu-item';div.innerHTML=`<input class="ev-input" data-menu="${k}" data-name placeholder="Nombre de la opción"><input class="ev-input" type="number" min="0" data-menu="${k}" data-qty value="1"><button class="ev-btn sm danger" onclick="this.parentElement.remove()">×</button>`;box.appendChild(div)},
     saveCatering:async function(){const mapa={...(this.event.mapa||{})};const c={enabled:document.getElementById('catEnabled').checked,entrada:[],fuerte:[],postre:[],bebidas:[]};for(const k of Object.keys(c).filter(x=>x!=='enabled')){const names=[...document.querySelectorAll(`[data-menu="${k}"][data-name]`)];const qty=[...document.querySelectorAll(`[data-menu="${k}"][data-qty]`)];c[k]=names.map((n,i)=>({nombre:n.value.trim(),cantidadDefault:Number(qty[i]?.value||1)})).filter(x=>x.nombre)}mapa.catering=c;try{await sb.from('eventos').update({mapa}).eq('id',this.event.id);this.event.mapa=mapa;toast('Catering guardado');this.adminTab('catering')}catch(e){toast('No se pudo guardar el catering: '+e.message,true)}},
